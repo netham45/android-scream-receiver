@@ -33,7 +33,36 @@ jobs:
         name: app-release-apk # Keep uploading as artifact for easy access from Actions tab
         path: app/build/outputs/apk/release/app-release-unsigned.apk
 
+    - name: Set release details
+      run: |
+        if [[ "${{ github.ref }}" == refs/tags/v* ]]; then
+          VERSION="${GITHUB_REF#refs/tags/v}"
+          RELEASE_NAME="ScreamRouter ${VERSION}"
+          TAG_NAME="${GITHUB_REF#refs/tags/}"
+          IS_PRERELEASE="false"
+        else
+          VERSION="development-${{ env.SHORT_SHA }}"
+          RELEASE_NAME="ScreamRouter Development Build (${{ env.SHORT_SHA }})"
+          TAG_NAME="build-${{ env.SHORT_SHA }}"
+          IS_PRERELEASE="true"
+        fi
+        
+        echo "VERSION=${VERSION}" >> $GITHUB_ENV
+        echo "RELEASE_NAME=${RELEASE_NAME}" >> $GITHUB_ENV
+        echo "TAG_NAME=${TAG_NAME}" >> $GITHUB_ENV
+        echo "IS_PRERELEASE=${IS_PRERELEASE}" >> $GITHUB_ENV
+
     - name: Create GitHub Release
-      uses: softprops/action-gh-release@v2
+      uses: softprops/action-gh-release@v1
       with:
         files: app/build/outputs/apk/release/app-release-unsigned.apk
+        name: ${{ env.RELEASE_NAME }}
+        tag_name: ${{ env.TAG_NAME }}
+        draft: false
+        prerelease: ${{ env.IS_PRERELEASE == 'true' }}
+        generate_release_notes: true
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Create GitHub Release
+      uses: softprops/action-gh-release@v2
