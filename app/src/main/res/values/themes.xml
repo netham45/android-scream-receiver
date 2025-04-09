@@ -1,0 +1,8 @@
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <!-- Base application theme. -->
+    <style name="Theme.AndroidScreamReceiver" parent="Theme.AppCompat.DayNight.NoActionBar"> <!-- Or Theme.MaterialComponents.DayNight.NoActionBar if using Material lib -->
+        <!-- Primary brand color. -->
+        <!-- Customize your theme here. -->
+
+    </style>
+</resources>

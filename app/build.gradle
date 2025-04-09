@@ -1,0 +1,63 @@
+plugins {
+    id 'com.android.application'
+}
+
+android {
+    namespace 'com.netham45.android_scream_receiver'
+    compileSdk 34 // Target a recent SDK version
+
+    defaultConfig {
+        applicationId "com.netham45.android_scream_receiver"
+        minSdk 26 // Android 8.0 (Oreo) - Required for startForegroundService and Notification Channels
+        targetSdk 34
+        versionCode 1
+        versionName "1.0"
+
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false // Keep disabled for skeleton/debugging
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+        debug {
+            // Debug specific settings if needed
+        }
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+    // If using Kotlin, add Kotlin options here
+    // kotlinOptions {
+    //    jvmTarget = '1.8'
+    // }
+
+    // If you were using View Binding or Data Binding, enable them here
+    // buildFeatures {
+    //     viewBinding true
+    // }
+}
+
+dependencies {
+
+    // Core AndroidX libraries
+    implementation 'androidx.core:core:1.12.0' // Use standard core library for Java
+    implementation('androidx.appcompat:appcompat:1.6.1') { // Provides compatibility features
+        exclude group: 'org.jetbrains.kotlin' // Exclude Kotlin stdlib transitively
+    }
+
+    // Media Session Compatibility Library (for lock screen controls)
+    implementation('androidx.media:media:1.7.0') { // Check for the latest version
+         exclude group: 'org.jetbrains.kotlin' // Exclude Kotlin stdlib transitively
+    }
+
+    // Material Design Components (Optional, but often used for themes/UI)
+    // implementation 'com.google.android.material:material:1.11.0'
+
+    // Testing libraries (Optional for skeleton)
+    // testImplementation 'junit:junit:4.13.2'
+    // androidTestImplementation 'androidx.test.ext:junit:1.1.5'
+    // androidTestImplementation 'androidx.test.espresso:espresso-core:3.5.1'
+}
