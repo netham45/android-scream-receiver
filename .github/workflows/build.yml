@@ -27,11 +27,64 @@ jobs:
     - name: Build with Gradle
       run: ./gradlew assembleRelease
 
+    - name: Setup Signing
+      run: |
+        # Create directory for signing files
+        mkdir -p signing
+        
+        # Save the private key from GitHub secrets
+        echo "${{ secrets.SCREAM_PRIV_KEY }}" > signing/signing_key.pem
+        
+        # Check the format of the private key
+        echo "Checking private key format..."
+        openssl rsa -in signing/signing_key.pem -check -noout || {
+          echo "Converting private key format if needed..."
+          # Try to convert if it's not in the expected format
+          openssl pkcs8 -in signing/signing_key.pem -out signing/rsa_key.pem -nocrypt || {
+            echo "Failed to convert key format. Trying alternative approach..."
+            # If conversion fails, try to extract the key in a different way
+            grep -v "PRIVATE KEY" signing/signing_key.pem | base64 -d > signing/raw_key.der
+            openssl rsa -inform DER -in signing/raw_key.der -out signing/rsa_key.pem
+          }
+          # Use the converted key for further steps
+          mv signing/rsa_key.pem signing/signing_key.pem
+        }
+        
+        # Generate a self-signed certificate
+        echo "Generating self-signed certificate..."
+        openssl req -new -x509 -key signing/signing_key.pem -out signing/certificate.pem -days 365 -subj "/CN=Android Build/O=GitHub Actions/C=US"
+        
+        # Create a PKCS#12 keystore from the private key and certificate
+        echo "Creating PKCS#12 keystore..."
+        openssl pkcs12 -export -in signing/certificate.pem -inkey signing/signing_key.pem -out signing/keystore.p12 -name androidkey -password pass:android
+        
+        # Convert to JKS format for Android signing
+        echo "Converting to JKS format..."
+        keytool -importkeystore -srckeystore signing/keystore.p12 -srcstoretype PKCS12 -srcstorepass android -destkeystore signing/keystore.jks -deststoretype JKS -deststorepass android -destkeypass android -srcalias androidkey -destalias androidkey
+
+    - name: Sign APK
+      run: |
+        # Find the latest build tools version
+        BUILD_TOOLS_VERSION=$(ls -1 $ANDROID_HOME/build-tools/ | sort -V | tail -1)
+        echo "Using build tools version: $BUILD_TOOLS_VERSION"
+        
+        # Use zipalign to optimize the APK
+        echo "Aligning APK..."
+        $ANDROID_HOME/build-tools/$BUILD_TOOLS_VERSION/zipalign -v -p 4 app/build/outputs/apk/release/app-release-unsigned.apk signing/app-release-aligned.apk
+        
+        # Sign the APK with the generated keystore
+        echo "Signing APK..."
+        $ANDROID_HOME/build-tools/$BUILD_TOOLS_VERSION/apksigner sign --ks signing/keystore.jks --ks-pass pass:android --key-pass pass:android --ks-key-alias androidkey --out app/build/outputs/apk/release/app-release.apk signing/app-release-aligned.apk
+        
+        # Verify the signed APK
+        echo "Verifying signed APK..."
+        $ANDROID_HOME/build-tools/$BUILD_TOOLS_VERSION/apksigner verify --verbose app/build/outputs/apk/release/app-release.apk
+
     - name: Upload APK artifact
       uses: actions/upload-artifact@v4
       with:
         name: app-release-apk # Keep uploading as artifact for easy access from Actions tab
-        path: app/build/outputs/apk/release/app-release-unsigned.apk
+        path: app/build/outputs/apk/release/app-release.apk
 
     - name: Get commit short SHA
       id: sha
@@ -59,7 +112,7 @@ jobs:
     - name: Create GitHub Release
       uses: softprops/action-gh-release@v1
       with:
-        files: app/build/outputs/apk/release/app-release-unsigned.apk
+        files: app/build/outputs/apk/release/app-release.apk
         name: ${{ env.RELEASE_NAME }}
         tag_name: ${{ env.TAG_NAME }}
         draft: false
