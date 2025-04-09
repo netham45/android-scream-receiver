@@ -33,6 +33,10 @@ jobs:
         name: app-release-apk # Keep uploading as artifact for easy access from Actions tab
         path: app/build/outputs/apk/release/app-release-unsigned.apk
 
+    - name: Get commit short SHA
+      id: sha
+      run: echo "SHORT_SHA=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
+
     - name: Set release details
       run: |
         if [[ "${{ github.ref }}" == refs/tags/v* ]]; then
