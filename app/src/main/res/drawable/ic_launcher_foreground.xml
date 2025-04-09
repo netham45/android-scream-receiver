@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="400"
+    android:viewportHeight="400">
+    
+    <!-- Sound Waves -->
+    <path
+        android:pathData="M140,200C150,200 150,180 160,180C170,180 170,220 180,220C190,220 190,160 200,160C210,160 210,240 220,240C230,240 230,140 240,140C250,140 250,200 260,200"
+        android:strokeWidth="14"
+        android:strokeColor="#0086e6"
+        android:strokeLineCap="round"
+        android:alpha="0.7"/>
+    
+    <!-- Router-like Elements -->
+    <path
+        android:pathData="M150,270L250,270A5,5 0,0 1,255 275L255,275A5,5 0,0 1,250 280L150,280A5,5 0,0 1,145 275L145,275A5,5 0,0 1,150 270z"
+        android:fillColor="#0086e6"/>
+    
+    <path
+        android:pathData="M160,290L240,290A5,5 0,0 1,245 295L245,295A5,5 0,0 1,240 300L160,300A5,5 0,0 1,155 295L155,295A5,5 0,0 1,160 290z"
+        android:fillColor="#7fffd4"/>
+    
+    <path
+        android:pathData="M170,310L230,310A5,5 0,0 1,235 315L235,315A5,5 0,0 1,230 320L170,320A5,5 0,0 1,165 315L165,315A5,5 0,0 1,170 310z"
+        android:fillColor="#66ccff"/>
+</vector>

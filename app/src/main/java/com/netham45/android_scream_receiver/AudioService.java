@@ -28,6 +28,8 @@ import androidx.core.app.NotificationCompat;
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
+import java.net.InetAddress;
+import java.net.MulticastSocket;
 import java.net.SocketException;
 import java.net.SocketTimeoutException;
 
@@ -38,6 +40,7 @@ public class AudioService extends Service {
     private static final int NOTIFICATION_ID_EXIT = 1; // ID for the simple Exit notification (used for startForeground)
     private static final int NOTIFICATION_ID_MEDIA = 2; // ID for the Media Controls notification
     private static final int NETWORK_PORT = 4010;
+    private static final String MULTICAST_ADDRESS = "239.255.77.77";
     private static final int SOCKET_TIMEOUT_ACTIVE_MS = 10; // Reduced timeout for active streaming
     private static final int SOCKET_TIMEOUT_SLEEP_MS = 1000; // Longer timeout when sleeping
     private static final long INACTIVITY_TIMEOUT_MS = 5000; // 5 seconds
@@ -46,7 +49,7 @@ public class AudioService extends Service {
     private MediaSessionCompat mediaSession;
     private PowerManager.WakeLock wakeLock;
     private WifiManager.WifiLock wifiLock; // Keep WiFi active
-    private DatagramSocket socket;
+    private MulticastSocket socket;
     private Thread networkThread;
     private volatile boolean isRunning = true;
     private volatile boolean isSleeping = false;
@@ -437,12 +440,19 @@ public class AudioService extends Service {
             DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
 
             try {
-                socket = new DatagramSocket(NETWORK_PORT);
+                // Create a MulticastSocket instead of a DatagramSocket
+                socket = new MulticastSocket(NETWORK_PORT);
+                
+                // Join the multicast group
+                InetAddress multicastGroup = InetAddress.getByName(MULTICAST_ADDRESS);
+                socket.joinGroup(multicastGroup);
+                
                 // Increase socket receive buffer size
                 int desiredSocketBufferSize = 512 * 1024; // 512 KB example
                 socket.setReceiveBufferSize(desiredSocketBufferSize);
                 int actualSocketBufferSize = socket.getReceiveBufferSize();
-                Log.i(TAG, "UDP Socket created on port " + NETWORK_PORT + ". Requested SO_RCVBUF: " + desiredSocketBufferSize + ", Actual: " + actualSocketBufferSize);
+                Log.i(TAG, "Multicast Socket created on port " + NETWORK_PORT + " and joined group " + MULTICAST_ADDRESS + 
+                      ". Requested SO_RCVBUF: " + desiredSocketBufferSize + ", Actual: " + actualSocketBufferSize);
 
 
                 while (isRunning) {
@@ -501,6 +511,10 @@ public class AudioService extends Service {
                 Log.e(TAG, "Failed to create or bind socket on port " + NETWORK_PORT + ": " + e.getMessage(), e);
                 // Consider stopping the service if the socket fails critically
                 stopSelf();
+            } catch (IOException e) {
+                Log.e(TAG, "Failed to join multicast group " + MULTICAST_ADDRESS + ": " + e.getMessage(), e);
+                // Consider stopping the service if joining the multicast group fails
+                stopSelf();
             } finally {
                 if (socket != null && !socket.isClosed()) {
                     socket.close();
@@ -517,7 +531,16 @@ public class AudioService extends Service {
     private void stopNetworkListener() {
         isRunning = false; // Signal thread to stop
         if (socket != null) {
-            socket.close(); // Interrupts blocking receive() call
+            try {
+                // Leave the multicast group before closing the socket
+                InetAddress multicastGroup = InetAddress.getByName(MULTICAST_ADDRESS);
+                socket.leaveGroup(multicastGroup);
+                Log.d(TAG, "Left multicast group: " + MULTICAST_ADDRESS);
+            } catch (IOException e) {
+                Log.w(TAG, "Error leaving multicast group: " + e.getMessage());
+            } finally {
+                socket.close(); // Interrupts blocking receive() call
+            }
         }
         if (networkThread != null) {
             try {
